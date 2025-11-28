@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  adminCode String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  members   Member[]
+  events    Event[]
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  teamId      String
+  title       String
+  date        DateTime
+  startTime   String?
+  endTime     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model Member {
+  id        String     @id @default(cuid())
+  teamId    String
+  nickname  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  team      Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  schedules Schedule[]
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  memberId  String
+  date      DateTime
+  startTime String
+  endTime   String
+  task      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}

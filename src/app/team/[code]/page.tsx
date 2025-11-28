@@ -1,0 +1,310 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import {
+  addMonths,
+  subMonths,
+  addWeeks,
+  subWeeks,
+  addDays,
+  subDays,
+} from "date-fns";
+import { CalendarPlus, Plus } from "lucide-react";
+import { getTeamByCode } from "@/actions/team";
+import {
+  createSchedule,
+  updateSchedule,
+  deleteSchedule,
+  getSchedulesByMonth,
+} from "@/actions/schedule";
+import {
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getEventsByMonth,
+} from "@/actions/event";
+import { TeamWithMembers, ScheduleWithMember, Event, CalendarView } from "@/types";
+import TeamHeader from "@/components/team/TeamHeader";
+import CalendarNav from "@/components/calendar/CalendarNav";
+import DayView from "@/components/calendar/DayView";
+import WeekView from "@/components/calendar/WeekView";
+import MonthView from "@/components/calendar/MonthView";
+import ScheduleForm from "@/components/schedule/ScheduleForm";
+import EventForm from "@/components/event/EventForm";
+import Modal from "@/components/ui/Modal";
+import Button from "@/components/ui/Button";
+
+export default function TeamPage() {
+  const params = useParams();
+  const code = params.code as string;
+
+  const [team, setTeam] = useState<TeamWithMembers | null>(null);
+  const [schedules, setSchedules] = useState<ScheduleWithMember[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState<CalendarView>("month");
+  const [loading, setLoading] = useState(true);
+
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleWithMember | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  const loadData = useCallback(async () => {
+    const teamData = await getTeamByCode(code);
+    if (teamData) {
+      setTeam(teamData);
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
+      const [schedulesData, eventsData] = await Promise.all([
+        getSchedulesByMonth(teamData.id, year, month),
+        getEventsByMonth(teamData.id, year, month),
+      ]);
+      setSchedules(schedulesData);
+      setEvents(eventsData);
+    }
+    setLoading(false);
+  }, [code, currentDate]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handlePrevious = () => {
+    if (view === "month") setCurrentDate(subMonths(currentDate, 1));
+    else if (view === "week") setCurrentDate(subWeeks(currentDate, 1));
+    else setCurrentDate(subDays(currentDate, 1));
+  };
+
+  const handleNext = () => {
+    if (view === "month") setCurrentDate(addMonths(currentDate, 1));
+    else if (view === "week") setCurrentDate(addWeeks(currentDate, 1));
+    else setCurrentDate(addDays(currentDate, 1));
+  };
+
+  const handleToday = () => setCurrentDate(new Date());
+
+  const handleDayClick = (date: Date) => {
+    setCurrentDate(date);
+    setView("day");
+  };
+
+  const handleCreateSchedule = async (data: {
+    memberId: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    task?: string;
+  }) => {
+    await createSchedule(data);
+    setShowScheduleModal(false);
+    setSelectedDate(undefined);
+    loadData();
+  };
+
+  const handleUpdateSchedule = async (data: {
+    memberId: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    task?: string;
+  }) => {
+    if (!editingSchedule) return;
+    await updateSchedule(editingSchedule.id, {
+      startTime: data.startTime,
+      endTime: data.endTime,
+      task: data.task,
+    });
+    setEditingSchedule(null);
+    loadData();
+  };
+
+  const handleDeleteSchedule = async (id: string) => {
+    if (!confirm("ลบตารางนี้?")) return;
+    await deleteSchedule(id);
+    loadData();
+  };
+
+  const handleCreateEvent = async (data: {
+    title: string;
+    date: string;
+    startTime?: string;
+    endTime?: string;
+    description?: string;
+  }) => {
+    if (!team) return;
+    await createEvent({ ...data, teamId: team.id });
+    setShowEventModal(false);
+    setSelectedDate(undefined);
+    loadData();
+  };
+
+  const handleUpdateEvent = async (data: {
+    title: string;
+    date: string;
+    startTime?: string;
+    endTime?: string;
+    description?: string;
+  }) => {
+    if (!editingEvent) return;
+    await updateEvent(editingEvent.id, data);
+    setEditingEvent(null);
+    loadData();
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if (!confirm("ลบ Event นี้?")) return;
+    await deleteEvent(id);
+    loadData();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-500">กำลังโหลด...</div>
+      </div>
+    );
+  }
+
+  if (!team) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-gray-900 mb-2">ไม่พบทีม</h1>
+          <p className="text-gray-500">กรุณาตรวจสอบรหัสทีม</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <TeamHeader team={team} />
+
+      <main className="max-w-6xl mx-auto px-4 py-6">
+        <CalendarNav
+          currentDate={currentDate}
+          view={view}
+          onViewChange={setView}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+          onToday={handleToday}
+        />
+
+        {view === "day" && (
+          <DayView
+            date={currentDate}
+            schedules={schedules}
+            events={events}
+            onEditSchedule={setEditingSchedule}
+            onDeleteSchedule={handleDeleteSchedule}
+            onEditEvent={setEditingEvent}
+            onDeleteEvent={handleDeleteEvent}
+          />
+        )}
+
+        {view === "week" && (
+          <WeekView
+            currentDate={currentDate}
+            schedules={schedules}
+            events={events}
+            onDayClick={handleDayClick}
+          />
+        )}
+
+        {view === "month" && (
+          <MonthView
+            currentDate={currentDate}
+            schedules={schedules}
+            events={events}
+            onDayClick={handleDayClick}
+          />
+        )}
+
+        <div className="flex gap-3 mt-6 justify-center">
+          <Button
+            onClick={() => {
+              setSelectedDate(view === "day" ? currentDate : undefined);
+              setShowScheduleModal(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            ลงตารางใหม่
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setSelectedDate(view === "day" ? currentDate : undefined);
+              setShowEventModal(true);
+            }}
+          >
+            <CalendarPlus className="w-4 h-4 mr-2" />
+            เพิ่ม Event
+          </Button>
+        </div>
+      </main>
+
+      <Modal
+        isOpen={showScheduleModal}
+        onClose={() => {
+          setShowScheduleModal(false);
+          setSelectedDate(undefined);
+        }}
+        title="ลงตารางใหม่"
+      >
+        <ScheduleForm
+          members={team.members}
+          initialDate={selectedDate}
+          onSubmit={handleCreateSchedule}
+          onCancel={() => setShowScheduleModal(false)}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={!!editingSchedule}
+        onClose={() => setEditingSchedule(null)}
+        title="แก้ไขตาราง"
+      >
+        {editingSchedule && (
+          <ScheduleForm
+            members={team.members}
+            schedule={editingSchedule}
+            onSubmit={handleUpdateSchedule}
+            onCancel={() => setEditingSchedule(null)}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={showEventModal}
+        onClose={() => {
+          setShowEventModal(false);
+          setSelectedDate(undefined);
+        }}
+        title="เพิ่ม Event"
+      >
+        <EventForm
+          initialDate={selectedDate}
+          onSubmit={handleCreateEvent}
+          onCancel={() => setShowEventModal(false)}
+        />
+      </Modal>
+
+      <Modal
+        isOpen={!!editingEvent}
+        onClose={() => setEditingEvent(null)}
+        title="แก้ไข Event"
+      >
+        {editingEvent && (
+          <EventForm
+            event={editingEvent}
+            onSubmit={handleUpdateEvent}
+            onCancel={() => setEditingEvent(null)}
+          />
+        )}
+      </Modal>
+    </div>
+  );
+}

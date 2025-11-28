@@ -30,7 +30,9 @@ import CalendarNav from "@/components/calendar/CalendarNav";
 import DayView from "@/components/calendar/DayView";
 import WeekView from "@/components/calendar/WeekView";
 import MonthView from "@/components/calendar/MonthView";
+import ListView from "@/components/calendar/ListView";
 import ScheduleForm from "@/components/schedule/ScheduleForm";
+import ScheduleDetail from "@/components/schedule/ScheduleDetail";
 import EventForm from "@/components/event/EventForm";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -49,6 +51,7 @@ export default function TeamPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleWithMember | null>(null);
+  const [viewingSchedule, setViewingSchedule] = useState<ScheduleWithMember | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
@@ -73,13 +76,13 @@ export default function TeamPage() {
   }, [loadData]);
 
   const handlePrevious = () => {
-    if (view === "month") setCurrentDate(subMonths(currentDate, 1));
+    if (view === "month" || view === "list") setCurrentDate(subMonths(currentDate, 1));
     else if (view === "week") setCurrentDate(subWeeks(currentDate, 1));
     else setCurrentDate(subDays(currentDate, 1));
   };
 
   const handleNext = () => {
-    if (view === "month") setCurrentDate(addMonths(currentDate, 1));
+    if (view === "month" || view === "list") setCurrentDate(addMonths(currentDate, 1));
     else if (view === "week") setCurrentDate(addWeeks(currentDate, 1));
     else setCurrentDate(addDays(currentDate, 1));
   };
@@ -89,6 +92,11 @@ export default function TeamPage() {
   const handleDayClick = (date: Date) => {
     setCurrentDate(date);
     setView("day");
+  };
+
+  const handleAddScheduleFromCalendar = (date: Date) => {
+    setSelectedDate(date);
+    setShowScheduleModal(true);
   };
 
   const handleCreateSchedule = async (data: {
@@ -122,9 +130,19 @@ export default function TeamPage() {
   };
 
   const handleDeleteSchedule = async (id: string) => {
-    if (!confirm("ลบตารางนี้?")) return;
     await deleteSchedule(id);
     loadData();
+  };
+
+  const handleUpdateScheduleNote = async (data: { task?: string }) => {
+    if (!viewingSchedule) return;
+    await updateSchedule(viewingSchedule.id, { task: data.task });
+    setViewingSchedule(null);
+    loadData();
+  };
+
+  const handleScheduleClick = (schedule: ScheduleWithMember) => {
+    setViewingSchedule(schedule);
   };
 
   const handleCreateEvent = async (data: {
@@ -172,7 +190,7 @@ export default function TeamPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-gray-900 mb-2">ไม่พบทีม</h1>
+          <h1 className="text-xl font-bold text-black mb-2">ไม่พบทีม</h1>
           <p className="text-gray-500">กรุณาตรวจสอบรหัสทีม</p>
         </div>
       </div>
@@ -211,11 +229,24 @@ export default function TeamPage() {
             schedules={schedules}
             events={events}
             onDayClick={handleDayClick}
+            onAddSchedule={handleAddScheduleFromCalendar}
+            onScheduleClick={handleScheduleClick}
           />
         )}
 
         {view === "month" && (
           <MonthView
+            currentDate={currentDate}
+            schedules={schedules}
+            events={events}
+            onDayClick={handleDayClick}
+            onAddSchedule={handleAddScheduleFromCalendar}
+            onScheduleClick={handleScheduleClick}
+          />
+        )}
+
+        {view === "list" && (
+          <ListView
             currentDate={currentDate}
             schedules={schedules}
             events={events}
@@ -273,6 +304,21 @@ export default function TeamPage() {
             schedule={editingSchedule}
             onSubmit={handleUpdateSchedule}
             onCancel={() => setEditingSchedule(null)}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!viewingSchedule}
+        onClose={() => setViewingSchedule(null)}
+        title="รายละเอียดตาราง"
+      >
+        {viewingSchedule && (
+          <ScheduleDetail
+            schedule={viewingSchedule}
+            onUpdate={handleUpdateScheduleNote}
+            onDelete={() => handleDeleteSchedule(viewingSchedule.id)}
+            onClose={() => setViewingSchedule(null)}
           />
         )}
       </Modal>

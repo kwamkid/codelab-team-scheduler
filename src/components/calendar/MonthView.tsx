@@ -8,17 +8,21 @@ import {
   addDays,
   isSameDay,
   isSameMonth,
+  isBefore,
+  startOfDay,
   format,
 } from "date-fns";
 import { th } from "date-fns/locale";
 import { ScheduleWithMember, Event } from "@/types";
-import { cn } from "@/lib/utils";
+import { cn, getMemberColor } from "@/lib/utils";
 
 interface MonthViewProps {
   currentDate: Date;
   schedules: ScheduleWithMember[];
   events: Event[];
   onDayClick: (date: Date) => void;
+  onAddSchedule?: (date: Date) => void;
+  onScheduleClick?: (schedule: ScheduleWithMember) => void;
 }
 
 export default function MonthView({
@@ -26,6 +30,8 @@ export default function MonthView({
   schedules,
   events,
   onDayClick,
+  onAddSchedule,
+  onScheduleClick,
 }: MonthViewProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -48,83 +54,284 @@ export default function MonthView({
   const getEventsForDay = (date: Date) =>
     events.filter((e) => isSameDay(new Date(e.date), date));
 
+  // Helper to check if event is all-day (no time specified)
+  const isAllDayEvent = (event: Event) => !event.startTime && !event.endTime;
+
+  // Calculate number of weeks to ensure consistent row heights
+  const totalWeeks = Math.ceil(days.length / 7);
+
+  // Get all items for current month grouped by date
+  const monthItemsByDate = days
+    .filter((d) => isSameMonth(d, currentDate))
+    .map((d) => {
+      const daySchedules = getSchedulesForDay(d);
+      const dayEvents = getEventsForDay(d);
+      const items = [
+        ...dayEvents.map((e) => ({ type: "event" as const, data: e })),
+        ...daySchedules.map((s) => ({ type: "schedule" as const, data: s })),
+      ];
+      return { date: d, items };
+    })
+    .filter((group) => group.items.length > 0);
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-      <div className="grid grid-cols-7 border-b bg-gray-50">
-        {weekDays.map((dayName) => (
+    <div>
+      <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
+      {/* Header - Weekdays */}
+      <div className="grid grid-cols-7 bg-linear-to-r from-accent-blue-light/50 to-accent-purple-light/50">
+        {weekDays.map((dayName, idx) => (
           <div
             key={dayName}
-            className="p-3 text-center text-sm font-medium text-gray-600"
+            className={cn(
+              "p-2 sm:p-3 text-center text-xs sm:text-sm font-semibold",
+              idx === 5 || idx === 6 ? "text-accent-pink" : "text-gray-600"
+            )}
           >
             {dayName}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7">
+      {/* Calendar Grid */}
+      <div
+        className="grid grid-cols-7"
+        style={{ gridTemplateRows: `repeat(${totalWeeks}, minmax(80px, 1fr))` }}
+      >
         {days.map((day, index) => {
           const daySchedules = getSchedulesForDay(day);
           const dayEvents = getEventsForDay(day);
           const isCurrentMonth = isSameMonth(day, currentDate);
           const isToday = isSameDay(day, today);
+          const isPast = isBefore(day, startOfDay(today)) && !isToday;
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const hasItems = daySchedules.length > 0 || dayEvents.length > 0;
+          const isLastRow = index >= days.length - 7;
+          const isLastColumn = (index + 1) % 7 === 0;
 
           return (
             <div
               key={index}
-              onClick={() => onDayClick(day)}
+              onClick={() => onAddSchedule ? onAddSchedule(day) : onDayClick(day)}
               className={cn(
-                "min-h-[100px] p-2 border-b border-r cursor-pointer hover:bg-gray-50 transition-colors",
-                !isCurrentMonth && "bg-gray-50",
-                isToday && "bg-blue-50"
+                "min-h-[80px] sm:min-h-[110px] p-1 sm:p-2 cursor-pointer hover:bg-accent-blue-light/30 transition-all duration-200",
+                !isLastRow && "border-b border-gray-100",
+                !isLastColumn && "border-r border-gray-100",
+                !isCurrentMonth && "bg-gray-50/50",
+                isPast && isCurrentMonth && "bg-gray-50/70",
+                isToday && "bg-linear-to-br from-accent-yellow-light/50 to-accent-orange-light/50"
               )}
             >
+              {/* Date Number */}
               <div className="flex items-center justify-between mb-1">
                 <span
                   className={cn(
-                    "text-sm font-medium",
-                    !isCurrentMonth && "text-gray-400",
+                    "text-xs sm:text-sm font-medium w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg transition-all",
+                    !isCurrentMonth && "text-gray-300",
+                    isCurrentMonth && isPast && "text-gray-400",
+                    isCurrentMonth && isWeekend && !isPast && "text-accent-pink",
+                    isCurrentMonth && isWeekend && isPast && "text-gray-400",
                     isToday &&
-                      "w-6 h-6 flex items-center justify-center bg-blue-600 text-white rounded-full"
+                      "bg-linear-to-br from-primary to-accent-orange text-white shadow-md shadow-primary/30"
                   )}
                 >
                   {format(day, "d")}
                 </span>
+                {/* Badge for mobile */}
+                {hasItems && (
+                  <span className="sm:hidden w-2 h-2 bg-accent-blue rounded-full" />
+                )}
+                {/* Badge count for desktop */}
                 {daySchedules.length > 0 && (
-                  <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+                  <span className="hidden sm:inline text-xs bg-accent-blue-light text-accent-blue font-medium px-2 py-0.5 rounded-full">
                     {daySchedules.length}
                   </span>
                 )}
               </div>
 
-              <div className="space-y-1">
-                {dayEvents.slice(0, 2).map((event) => (
-                  <div
-                    key={event.id}
-                    className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-800 rounded truncate"
-                    title={event.title}
-                  >
-                    {event.title}
-                  </div>
-                ))}
-                {daySchedules.slice(0, 2).map((schedule) => (
-                  <div
-                    key={schedule.id}
-                    className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded truncate"
-                    title={schedule.member.nickname}
-                  >
-                    {schedule.member.nickname}
-                  </div>
-                ))}
-                {daySchedules.length + dayEvents.length > 2 && (
-                  <div className="text-xs text-gray-500">
-                    +{daySchedules.length + dayEvents.length - 2} อื่นๆ
+              {/* Events & Schedules - Hidden on mobile, show on larger screens */}
+              <div className="hidden sm:grid grid-cols-2 gap-1">
+                {/* Combine events and schedules, take first 4 */}
+                {[
+                  ...dayEvents.map((e) => ({ type: "event" as const, data: e })),
+                  ...daySchedules.map((s) => ({ type: "schedule" as const, data: s })),
+                ]
+                  .slice(0, 4)
+                  .map((item) =>
+                    item.type === "event" ? (
+                      <div
+                        key={item.data.id}
+                        className={cn(
+                          "text-xs px-2 py-1 rounded-lg truncate font-medium shadow-sm",
+                          isAllDayEvent(item.data)
+                            ? "bg-accent-pink-light text-accent-pink"
+                            : "bg-accent-purple-light text-accent-purple"
+                        )}
+                        title={item.data.title}
+                      >
+                        {item.data.title}
+                      </div>
+                    ) : (
+                      <div
+                        key={item.data.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onScheduleClick?.(item.data);
+                        }}
+                        className={cn(
+                          "text-xs px-2 py-1 rounded-lg truncate font-medium cursor-pointer hover:opacity-80 transition-opacity shadow-sm",
+                          getMemberColor(item.data.member.color).bg,
+                          getMemberColor(item.data.member.color).text
+                        )}
+                        title={item.data.member.nickname}
+                      >
+                        {item.data.member.nickname}
+                      </div>
+                    )
+                  )}
+                {daySchedules.length + dayEvents.length > 4 && (
+                  <div className="text-xs text-gray-400 font-medium col-span-2 text-center">
+                    +{daySchedules.length + dayEvents.length - 4} อื่นๆ
                   </div>
                 )}
+              </div>
+
+              {/* Mobile: Show dots for items */}
+              <div className="sm:hidden flex flex-wrap gap-0.5 mt-1">
+                {dayEvents.slice(0, 3).map((event) => (
+                  <span
+                    key={event.id}
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      isAllDayEvent(event) ? "bg-accent-pink" : "bg-accent-purple"
+                    )}
+                  />
+                ))}
+                {daySchedules.slice(0, 3).map((schedule) => {
+                  const memberColor = getMemberColor(schedule.member.color);
+                  return (
+                    <span
+                      key={schedule.id}
+                      className={cn("w-1.5 h-1.5 rounded-full", memberColor.dot)}
+                    />
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
+      </div>
+
+      {/* Mobile: List below calendar grouped by date */}
+      {monthItemsByDate.length > 0 && (
+        <div className="sm:hidden mt-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
+          <div className="p-3 bg-linear-to-r from-accent-blue-light/50 to-accent-purple-light/50 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-700 text-sm">รายการเดือนนี้</h3>
+          </div>
+          <div className="max-h-[400px] overflow-y-auto">
+            {monthItemsByDate.map((group) => {
+              const isPastDate = isBefore(group.date, startOfDay(today));
+              const isGroupToday = isSameDay(group.date, today);
+
+              return (
+                <div key={group.date.toISOString()}>
+                  {/* Date Header */}
+                  <div
+                    className={cn(
+                      "px-3 py-2 bg-gray-50 border-b border-gray-100 sticky top-0",
+                      isGroupToday && "bg-accent-yellow-light"
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        "text-sm font-semibold",
+                        isPastDate ? "text-gray-400" : "text-gray-700"
+                      )}
+                    >
+                      {format(group.date, "EEEE d MMMM", { locale: th })}
+                      {isGroupToday && (
+                        <span className="ml-2 text-xs font-medium text-accent-orange">
+                          วันนี้
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  {/* Items for this date */}
+                  <div className="divide-y divide-gray-100">
+                    {group.items.map((item) =>
+                      item.type === "event" ? (
+                        <div
+                          key={`event-${item.data.id}`}
+                          className={cn(
+                            "px-3 py-3 flex items-center gap-3",
+                            isPastDate && "opacity-50"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "w-3 h-3 rounded-full shrink-0",
+                              isAllDayEvent(item.data)
+                                ? "bg-accent-pink"
+                                : "bg-accent-purple"
+                            )}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {item.data.title}
+                            </p>
+                            {item.data.startTime && (
+                              <p className="text-xs text-gray-500">
+                                {item.data.startTime}
+                                {item.data.endTime && ` - ${item.data.endTime}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          key={`schedule-${item.data.id}`}
+                          onClick={() => onScheduleClick?.(item.data)}
+                          className={cn(
+                            "px-3 py-3 flex items-center gap-3 cursor-pointer active:bg-gray-50",
+                            isPastDate && "opacity-50"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "w-3 h-3 rounded-full shrink-0",
+                              getMemberColor(item.data.member.color).dot
+                            )}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={cn(
+                                "text-sm font-medium truncate",
+                                getMemberColor(item.data.member.color).text
+                              )}
+                            >
+                              {item.data.member.nickname}
+                            </p>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs text-gray-500 shrink-0">
+                                {item.data.startTime} - {item.data.endTime}
+                              </p>
+                              {item.data.task && (
+                                <p className="text-xs text-gray-400 truncate">
+                                  {item.data.task}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -31,7 +31,7 @@ export default function JoinTeamForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+        <div className="p-3 bg-primary-light text-primary rounded-lg text-sm">
           {error}
         </div>
       )}

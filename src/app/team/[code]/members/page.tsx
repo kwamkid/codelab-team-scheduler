@@ -27,7 +27,7 @@ export default async function MembersPage({ params }: Props) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">จัดการสมาชิก</h1>
+            <h1 className="text-xl font-bold text-black">จัดการสมาชิก</h1>
             <p className="text-sm text-gray-500">{team.name}</p>
           </div>
         </div>

@@ -19,7 +19,7 @@ export type ScheduleWithMember = Schedule & {
   member: Member;
 };
 
-export type CalendarView = "day" | "week" | "month";
+export type CalendarView = "day" | "week" | "month" | "list";
 
 export interface ScheduleFormData {
   memberId: string;

@@ -1,1 +1,70 @@
+/* IBM Plex Sans Thai Font */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
 @import "tailwindcss";
+
+/* CSS Custom Properties for Modern UI */
+@theme {
+  --font-sans: 'IBM Plex Sans Thai', sans-serif;
+
+  /* CI Colors */
+  --color-primary: #ef443a;
+  --color-primary-hover: #dc2626;
+  --color-primary-light: #fef2f2;
+  --color-primary-dark: #b91c1c;
+
+  /* Accent Colors - Fun & Modern for Kids */
+  --color-accent-blue: #3b82f6;
+  --color-accent-blue-light: #dbeafe;
+  --color-accent-purple: #8b5cf6;
+  --color-accent-purple-light: #ede9fe;
+  --color-accent-pink: #ec4899;
+  --color-accent-pink-light: #fce7f3;
+  --color-accent-orange: #f97316;
+  --color-accent-orange-light: #ffedd5;
+  --color-accent-green: #22c55e;
+  --color-accent-green-light: #dcfce7;
+  --color-accent-teal: #14b8a6;
+  --color-accent-teal-light: #ccfbf1;
+  --color-accent-yellow: #eab308;
+  --color-accent-yellow-light: #fef9c3;
+
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  /* Soft Neutral Colors */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f5f5f5;
+  --color-gray-200: #e5e5e5;
+  --color-gray-300: #d4d4d4;
+  --color-gray-400: #a3a3a3;
+  --color-gray-500: #737373;
+  --color-gray-600: #525252;
+  --color-gray-700: #404040;
+  --color-gray-800: #262626;
+  --color-gray-900: #171717;
+}
+
+/* Base styles */
+html {
+  font-size: 18px;
+}
+
+body {
+  font-family: 'IBM Plex Sans Thai', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Responsive font sizes */
+@media (max-width: 640px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 18px;
+  }
+}

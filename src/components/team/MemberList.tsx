@@ -1,22 +1,63 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2, UserPlus } from "lucide-react";
+import { Pencil, Trash2, UserPlus, Check } from "lucide-react";
 import { Member } from "@/types";
 import { addMember, updateMember, deleteMember } from "@/actions/member";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Modal from "@/components/ui/Modal";
+import { MEMBER_COLORS, getMemberColor, cn } from "@/lib/utils";
 
 interface MemberListProps {
   teamId: string;
   members: Member[];
+  onMembersChange?: () => void;
 }
 
-export default function MemberList({ teamId, members }: MemberListProps) {
+// Color Picker Component
+function ColorPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (color: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        เลือกสีประจำตัว
+      </label>
+      <div className="grid grid-cols-6 gap-2">
+        {MEMBER_COLORS.map((color) => (
+          <button
+            key={color.id}
+            type="button"
+            onClick={() => onChange(color.id)}
+            className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 border-2",
+              color.bg,
+              value === color.id
+                ? `${color.border} ring-2 ring-offset-2 ring-${color.id}-400`
+                : "border-transparent hover:scale-110"
+            )}
+            title={color.name}
+          >
+            {value === color.id && (
+              <Check className={cn("w-5 h-5", color.text)} />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function MemberList({ teamId, members, onMembersChange }: MemberListProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [nickname, setNickname] = useState("");
+  const [selectedColor, setSelectedColor] = useState("blue");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,12 +68,14 @@ export default function MemberList({ teamId, members }: MemberListProps) {
     setLoading(true);
     setError("");
 
-    const result = await addMember(teamId, nickname);
+    const result = await addMember(teamId, nickname, selectedColor);
     if (result.error) {
       setError(result.error);
     } else {
       setShowAddModal(false);
       setNickname("");
+      setSelectedColor("blue");
+      onMembersChange?.();
     }
     setLoading(false);
   };
@@ -44,12 +87,14 @@ export default function MemberList({ teamId, members }: MemberListProps) {
     setLoading(true);
     setError("");
 
-    const result = await updateMember(editingMember.id, nickname);
+    const result = await updateMember(editingMember.id, nickname, selectedColor);
     if (result.error) {
       setError(result.error);
     } else {
       setEditingMember(null);
       setNickname("");
+      setSelectedColor("blue");
+      onMembersChange?.();
     }
     setLoading(false);
   };
@@ -58,6 +103,7 @@ export default function MemberList({ teamId, members }: MemberListProps) {
     if (!confirm(`ลบ "${member.nickname}" ออกจากทีม?`)) return;
 
     await deleteMember(member.id);
+    onMembersChange?.();
   };
 
   return (
@@ -76,31 +122,53 @@ export default function MemberList({ teamId, members }: MemberListProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {members.map((member) => (
-            <div
-              key={member.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <span className="font-medium">{member.nickname}</span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    setEditingMember(member);
-                    setNickname(member.nickname);
-                  }}
-                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(member)}
-                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+          {members.map((member) => {
+            const color = getMemberColor(member.color);
+            return (
+              <div
+                key={member.id}
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-xl transition-all duration-200 border",
+                  color.bg,
+                  color.border,
+                  "hover:shadow-md"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm",
+                      color.dot,
+                      "text-white"
+                    )}
+                  >
+                    {member.nickname.charAt(0).toUpperCase()}
+                  </div>
+                  <span className={cn("font-medium", color.text)}>
+                    {member.nickname}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setEditingMember(member);
+                      setNickname(member.nickname);
+                      setSelectedColor(member.color);
+                    }}
+                    className="p-2 text-gray-500 hover:text-accent-blue hover:bg-white rounded-lg transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(member)}
+                    className="p-2 text-gray-500 hover:text-primary hover:bg-white rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -109,13 +177,14 @@ export default function MemberList({ teamId, members }: MemberListProps) {
         onClose={() => {
           setShowAddModal(false);
           setNickname("");
+          setSelectedColor("blue");
           setError("");
         }}
         title="เพิ่มสมาชิก"
       >
         <form onSubmit={handleAdd} className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+            <div className="p-3 bg-primary-light text-primary rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -126,6 +195,7 @@ export default function MemberList({ teamId, members }: MemberListProps) {
             onChange={(e) => setNickname(e.target.value)}
             autoFocus
           />
+          <ColorPicker value={selectedColor} onChange={setSelectedColor} />
           <div className="flex gap-3">
             <Button
               type="button"
@@ -147,13 +217,14 @@ export default function MemberList({ teamId, members }: MemberListProps) {
         onClose={() => {
           setEditingMember(null);
           setNickname("");
+          setSelectedColor("blue");
           setError("");
         }}
         title="แก้ไขสมาชิก"
       >
         <form onSubmit={handleEdit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+            <div className="p-3 bg-primary-light text-primary rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -163,6 +234,7 @@ export default function MemberList({ teamId, members }: MemberListProps) {
             onChange={(e) => setNickname(e.target.value)}
             autoFocus
           />
+          <ColorPicker value={selectedColor} onChange={setSelectedColor} />
           <div className="flex gap-3">
             <Button
               type="button"

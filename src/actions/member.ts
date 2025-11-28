@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function addMember(teamId: string, nickname: string) {
+export async function addMember(teamId: string, nickname: string, color: string = "blue") {
   if (!nickname.trim()) {
     return { error: "กรุณาใส่ชื่อเล่น" };
   }
@@ -17,6 +17,7 @@ export async function addMember(teamId: string, nickname: string) {
     data: {
       teamId,
       nickname: nickname.trim(),
+      color,
     },
   });
 
@@ -24,7 +25,7 @@ export async function addMember(teamId: string, nickname: string) {
   return { success: true, member };
 }
 
-export async function updateMember(id: string, nickname: string) {
+export async function updateMember(id: string, nickname: string, color?: string) {
   if (!nickname.trim()) {
     return { error: "กรุณาใส่ชื่อเล่น" };
   }
@@ -40,7 +41,10 @@ export async function updateMember(id: string, nickname: string) {
 
   const updatedMember = await prisma.member.update({
     where: { id },
-    data: { nickname: nickname.trim() },
+    data: {
+      nickname: nickname.trim(),
+      ...(color && { color }),
+    },
   });
 
   revalidatePath(`/team/${member.team.code}`);

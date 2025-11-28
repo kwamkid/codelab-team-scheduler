@@ -10,13 +10,12 @@ export default function CreateTeamForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-  const [adminCode, setAdminCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !code.trim() || !adminCode.trim()) {
+    if (!name.trim() || !code.trim()) {
       setError("กรุณากรอกข้อมูลให้ครบ");
       return;
     }
@@ -24,7 +23,7 @@ export default function CreateTeamForm() {
     setLoading(true);
     setError("");
 
-    const result = await createTeam({ name, code, adminCode });
+    const result = await createTeam({ name, code });
     if (result.error) {
       setError(result.error);
       setLoading(false);
@@ -36,7 +35,7 @@ export default function CreateTeamForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+        <div className="p-3 bg-primary-light text-primary rounded-lg text-sm">
           {error}
         </div>
       )}
@@ -58,19 +57,6 @@ export default function CreateTeamForm() {
         />
         <p className="text-xs text-gray-500 mt-1">
           4-10 ตัว ใช้ตัวเลขหรือตัวอักษรภาษาอังกฤษ
-        </p>
-      </div>
-
-      <div>
-        <Input
-          label="รหัส Admin"
-          placeholder="สำหรับจัดการทีม"
-          value={adminCode}
-          onChange={(e) => setAdminCode(e.target.value)}
-          maxLength={10}
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          4-10 ตัว สำหรับใช้จัดการทีม (แก้ไข/ลบ)
         </p>
       </div>
 

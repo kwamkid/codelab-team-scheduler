@@ -111,9 +111,17 @@ export default function AdminDashboard({ teams }: AdminDashboardProps) {
       setCreateError("กรุณากรอกข้อมูลให้ครบ");
       return;
     }
+
+    // Validate team code: only A-Z, 0-9, length 4-10
+    const cleanCode = newTeamCode.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (!/^[A-Za-z0-9]{4,10}$/.test(cleanCode)) {
+      setCreateError("รหัสทีมต้องเป็นตัวอักษรภาษาอังกฤษ (A-Z) หรือตัวเลข (0-9) 4-10 ตัวเท่านั้น ห้ามมีเว้นวรรคหรือภาษาไทย");
+      return;
+    }
+
     setSaving(true);
     setCreateError("");
-    const result = await createTeam({ name: newTeamName.trim(), code: newTeamCode.trim() });
+    const result = await createTeam({ name: newTeamName.trim(), code: cleanCode });
     if (result.error) {
       setCreateError(result.error);
       setSaving(false);
@@ -421,11 +429,21 @@ export default function AdminDashboard({ teams }: AdminDashboardProps) {
               label="รหัสทีม"
               placeholder="เช่น VEXIQ01 หรือ 2025A"
               value={newTeamCode}
-              onChange={(e) => setNewTeamCode(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                const value = e.target.value.toUpperCase();
+                setNewTeamCode(value);
+                // Show error if invalid characters detected
+                if (value && !/^[A-Za-z0-9]*$/.test(value)) {
+                  setCreateError("รหัสทีมใช้ได้แค่ A-Z และ 0-9 เท่านั้น (ห้ามเว้นวรรค ภาษาไทย หรืออักขระพิเศษ)");
+                } else if (createError.includes("รหัสทีม")) {
+                  setCreateError("");
+                }
+              }}
               maxLength={10}
+              error={newTeamCode && !/^[A-Za-z0-9]*$/.test(newTeamCode) ? "ใช้ได้แค่ A-Z และ 0-9" : undefined}
             />
             <p className="text-xs text-gray-500 mt-1">
-              4-10 ตัว ใช้ตัวเลขหรือตัวอักษรภาษาอังกฤษ
+              4-10 ตัว ใช้ตัวเลขหรือตัวอักษรภาษาอังกฤษเท่านั้น (ห้ามเว้นวรรค)
             </p>
           </div>
           <div className="flex gap-3">
@@ -443,7 +461,7 @@ export default function AdminDashboard({ teams }: AdminDashboardProps) {
             </Button>
             <Button
               onClick={handleCreateTeam}
-              disabled={saving || !newTeamName.trim() || !newTeamCode.trim()}
+              disabled={saving || !newTeamName.trim() || !newTeamCode.trim() || !/^[A-Za-z0-9]{4,10}$/.test(newTeamCode)}
               className="flex-1"
             >
               {saving ? "กำลังสร้าง..." : "สร้างทีม"}

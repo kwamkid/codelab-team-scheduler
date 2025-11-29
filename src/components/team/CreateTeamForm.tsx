@@ -20,10 +20,17 @@ export default function CreateTeamForm() {
       return;
     }
 
+    // Validate team code: only A-Z, 0-9, length 4-10
+    const cleanCode = code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    if (cleanCode !== code.toUpperCase() || cleanCode.length < 4 || cleanCode.length > 10) {
+      setError("รหัสทีมต้องเป็นตัวอักษรภาษาอังกฤษหรือตัวเลข 4-10 ตัวเท่านั้น (ไม่มีเว้นวรรคหรืออักขระพิเศษ)");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
-    const result = await createTeam({ name, code });
+    const result = await createTeam({ name, code: cleanCode });
     if (result.error) {
       setError(result.error);
       setLoading(false);
@@ -52,11 +59,22 @@ export default function CreateTeamForm() {
           label="รหัสทีม"
           placeholder="เช่น VEXIQ01 หรือ 2025A"
           value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          maxLength={10}
+          onChange={(e) => {
+            const value = e.target.value;
+            setCode(value);
+            // Show error if invalid characters detected
+            if (value && !/^[A-Za-z0-9]*$/.test(value)) {
+              setError("รหัสทีมใช้ได้แค่ A-Z และ 0-9 เท่านั้น (ไม่มีเว้นวรรค ภาษาไทย หรืออักขระพิเศษ)");
+            } else if (error.includes("รหัสทีม")) {
+              setError("");
+            }
+          }}
+          maxLength={15}
+          autoComplete="off"
+          error={code && !/^[A-Za-z0-9]*$/.test(code) ? "ใช้ได้แค่ A-Z และ 0-9" : undefined}
         />
         <p className="text-xs text-gray-500 mt-1">
-          4-10 ตัว ใช้ตัวเลขหรือตัวอักษรภาษาอังกฤษ
+          4-10 ตัว ใช้ตัวเลขหรือตัวอักษรภาษาอังกฤษเท่านั้น (ไม่มีเว้นวรรค)
         </p>
       </div>
 

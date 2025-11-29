@@ -39,8 +39,23 @@ export default function JoinTeamForm() {
         label="รหัสทีม"
         placeholder="เช่น VEXIQ01"
         value={code}
-        onChange={(e) => setCode(e.target.value.toUpperCase())}
+        onChange={(e) => {
+          // Filter and uppercase immediately - handles all input including paste, IME, etc.
+          const filtered = e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+          setCode(filtered);
+        }}
+        onBeforeInput={(e: React.FormEvent<HTMLInputElement>) => {
+          const event = e.nativeEvent as InputEvent;
+          // Block non-alphanumeric characters before they're inserted
+          if (event.data && !/^[A-Za-z0-9]+$/.test(event.data)) {
+            e.preventDefault();
+          }
+        }}
         maxLength={10}
+        autoComplete="off"
+        spellCheck={false}
+        autoCorrect="off"
+        autoCapitalize="characters"
       />
       <Button type="submit" disabled={loading} className="w-full">
         {loading ? "กำลังค้นหา..." : "เข้าทีม"}

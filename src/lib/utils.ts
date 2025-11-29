@@ -24,7 +24,8 @@ export function validateTeamCode(code: string): boolean {
 }
 
 export function normalizeTeamCode(code: string): string {
-  return code.toUpperCase().trim();
+  // Remove all non-alphanumeric characters, then uppercase
+  return code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 }
 
 // Member color palette - 12 colors for team members

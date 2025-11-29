@@ -1,10 +1,10 @@
 "use client";
 
-import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, isBefore, startOfDay } from "date-fns";
 import { th } from "date-fns/locale";
-import { Calendar, Clock, Star } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { ScheduleWithMember, Event } from "@/types";
-import { cn, getMemberColor } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 // Helper to check if event is all-day (no time specified)
 const isAllDayEvent = (event: Event) => !event.startTime && !event.endTime;
@@ -14,6 +14,7 @@ interface ListViewProps {
   schedules: ScheduleWithMember[];
   events: Event[];
   onDayClick: (date: Date) => void;
+  onScheduleClick?: (schedule: ScheduleWithMember) => void;
 }
 
 export default function ListView({
@@ -21,6 +22,7 @@ export default function ListView({
   schedules,
   events,
   onDayClick,
+  onScheduleClick,
 }: ListViewProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -40,155 +42,104 @@ export default function ListView({
 
   return (
     <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
-      <div className="p-4 bg-linear-to-r from-accent-blue-light/50 to-accent-purple-light/50 border-b border-gray-100">
+      {/* Header */}
+      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
         <h3 className="font-semibold text-gray-700 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-accent-purple" />
-          รายการกิจกรรมในเดือนนี้
+          <Calendar className="w-5 h-5 text-gray-500" />
+          ประวัติการทำงาน - {format(currentDate, "MMMM yyyy", { locale: th })}
         </h3>
       </div>
 
       {daysWithActivity.length === 0 ? (
         <div className="p-12 text-center text-gray-400">
-          <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>ยังไม่มีกิจกรรมในเดือนนี้</p>
+          <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>ยังไม่มีข้อมูลในเดือนนี้</p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-gray-200">
           {daysWithActivity.map((day) => {
             const daySchedules = getSchedulesForDay(day);
             const dayEvents = getEventsForDay(day);
             const isToday = isSameDay(day, today);
-            const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+            const isPast = isBefore(day, startOfDay(today));
 
             return (
-              <div
-                key={day.toISOString()}
-                onClick={() => onDayClick(day)}
-                className={cn(
-                  "p-4 cursor-pointer hover:bg-accent-blue-light/20 transition-all duration-200",
-                  isToday && "bg-accent-yellow-light/30"
-                )}
-              >
+              <div key={day.toISOString()}>
                 {/* Date Header */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div
-                    className={cn(
-                      "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold",
-                      isToday
-                        ? "bg-linear-to-br from-primary to-accent-orange text-white shadow-md shadow-primary/30"
-                        : isWeekend
-                        ? "bg-accent-pink-light text-accent-pink"
-                        : "bg-gray-100 text-gray-600"
-                    )}
-                  >
-                    <span className="text-lg leading-none">{format(day, "d")}</span>
-                    <span className="text-[10px] font-medium opacity-80">
-                      {format(day, "EEE", { locale: th })}
-                    </span>
-                  </div>
-                  <div>
-                    <p className={cn(
-                      "font-medium",
-                      isToday ? "text-primary" : "text-gray-700"
-                    )}>
-                      {format(day, "EEEE", { locale: th })}
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      {format(day, "d MMMM yyyy", { locale: th })}
-                    </p>
-                  </div>
-                  {isToday && (
-                    <span className="ml-auto px-3 py-1 bg-primary text-white text-xs font-medium rounded-full">
-                      วันนี้
-                    </span>
+                <div
+                  onClick={() => onDayClick(day)}
+                  className={cn(
+                    "px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-gray-100",
+                    isPast ? "bg-gray-100" : "bg-gray-50",
+                    isToday && "bg-yellow-50"
                   )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "font-semibold text-sm",
+                      isPast ? "text-gray-400" : "text-gray-700"
+                    )}>
+                      {format(day, "EEE d MMM", { locale: th })}
+                    </span>
+                    {isToday && (
+                      <span className="px-2 py-0.5 bg-primary text-white text-xs font-medium rounded">
+                        วันนี้
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    {daySchedules.length + dayEvents.length} รายการ
+                  </span>
                 </div>
 
-                {/* Events */}
-                {dayEvents.length > 0 && (
-                  <div className="space-y-2 mb-3">
-                    {dayEvents.map((event) => {
-                      const allDay = isAllDayEvent(event);
-                      return (
-                        <div
-                          key={event.id}
-                          className={cn(
-                            "flex items-center gap-3 p-3 rounded-xl",
-                            allDay ? "bg-accent-pink-light" : "bg-accent-purple-light"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-10 h-10 rounded-lg flex items-center justify-center",
-                            allDay ? "bg-accent-pink/20" : "bg-accent-purple/20"
-                          )}>
-                            {allDay ? (
-                              <Star className="w-5 h-5 text-accent-pink" />
-                            ) : (
-                              <Calendar className="w-5 h-5 text-accent-purple" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={cn(
-                              "font-medium truncate",
-                              allDay ? "text-accent-pink" : "text-accent-purple"
-                            )}>
-                              {event.title}
-                            </p>
-                            {allDay ? (
-                              <p className="text-sm text-accent-pink/70">ตลอดทั้งวัน</p>
-                            ) : (
-                              <p className="text-sm text-accent-purple/70 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {event.startTime}
-                                {event.endTime && ` - ${event.endTime}`}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Records - 1 per row */}
+                <div className={cn(
+                  "divide-y divide-gray-100",
+                  isPast && "bg-gray-50/50"
+                )}>
+                  {/* Events */}
+                  {dayEvents.map((event) => (
+                    <div
+                      key={`event-${event.id}`}
+                      className={cn(
+                        "px-4 py-3 flex items-center gap-4",
+                        isPast && "opacity-60"
+                      )}
+                    >
+                      <div className="w-24 shrink-0 text-xs text-gray-500">
+                        {isAllDayEvent(event) ? "ตลอดวัน" : `${event.startTime || ""} ${event.endTime ? `- ${event.endTime}` : ""}`}
+                      </div>
+                      <div className="w-28 shrink-0 text-sm font-medium text-purple-600">
+                        📌 กิจกรรม
+                      </div>
+                      <div className="flex-1 text-sm text-gray-700 truncate">
+                        {event.title}
+                      </div>
+                    </div>
+                  ))}
 
-                {/* Schedules */}
-                {daySchedules.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {daySchedules.map((schedule) => {
-                      const memberColor = getMemberColor(schedule.member.color);
-                      return (
-                        <div
-                          key={schedule.id}
-                          className={cn(
-                            "flex items-center gap-2 px-3 py-2 rounded-xl",
-                            memberColor.bg
-                          )}
-                        >
-                          <div className={cn(
-                            "w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm",
-                            memberColor.dot
-                          )}>
-                            {schedule.member.nickname.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={cn("font-medium text-sm", memberColor.text)}>
-                              {schedule.member.nickname}
-                            </p>
-                            <div className="flex items-center justify-between gap-2">
-                              <p className={cn("text-xs opacity-70 shrink-0", memberColor.text)}>
-                                {schedule.startTime} - {schedule.endTime}
-                              </p>
-                              {schedule.task && (
-                                <p className="text-xs text-gray-500 truncate">
-                                  {schedule.task}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                  {/* Schedules */}
+                  {daySchedules.map((schedule) => (
+                    <div
+                      key={`schedule-${schedule.id}`}
+                      onClick={() => onScheduleClick?.(schedule)}
+                      className={cn(
+                        "px-4 py-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50",
+                        isPast && "opacity-60"
+                      )}
+                    >
+                      <div className="w-24 shrink-0 text-xs text-gray-500 font-mono">
+                        {schedule.startTime} - {schedule.endTime}
+                      </div>
+                      <div className="w-28 shrink-0 text-sm font-medium text-gray-800">
+                        {schedule.member.nickname}
+                      </div>
+                      <div className="flex-1 text-sm text-gray-600 truncate">
+                        {schedule.task || <span className="text-gray-300">-</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })}

@@ -4,6 +4,7 @@ import { startOfWeek, addDays, isSameDay, isBefore, startOfDay, format } from "d
 import { th } from "date-fns/locale";
 import { ScheduleWithMember, Event } from "@/types";
 import { cn, getMemberColor } from "@/lib/utils";
+import DateAccordion from "./DateAccordion";
 
 interface WeekViewProps {
   currentDate: Date;
@@ -103,8 +104,8 @@ export default function WeekView({
                 isPast && "bg-gray-50/70"
               )}
             >
-              {/* 2-column grid for items */}
-              <div className="grid grid-cols-2 gap-1.5">
+              {/* Desktop: 2-column grid, Mobile: 1-column */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 sm:gap-1.5">
                 {[
                   ...dayEvents.map((e) => ({ type: "event" as const, data: e })),
                   ...daySchedules.map((s) => ({ type: "schedule" as const, data: s })),
@@ -115,7 +116,7 @@ export default function WeekView({
                       <div
                         key={item.data.id}
                         className={cn(
-                          "px-2 py-2 rounded-lg text-xs truncate font-medium shadow-sm",
+                          "px-1.5 sm:px-2 py-1 sm:py-2 rounded-lg text-[10px] sm:text-xs truncate font-medium shadow-sm",
                           isAllDayEvent(item.data)
                             ? "bg-accent-pink-light text-accent-pink"
                             : "bg-accent-purple-light text-accent-purple"
@@ -132,7 +133,7 @@ export default function WeekView({
                           onScheduleClick?.(item.data);
                         }}
                         className={cn(
-                          "px-2 py-2 rounded-lg text-xs truncate font-medium shadow-sm cursor-pointer hover:opacity-80 transition-opacity",
+                          "px-1.5 sm:px-2 py-1 sm:py-2 rounded-lg text-[10px] sm:text-xs truncate font-medium shadow-sm cursor-pointer hover:opacity-80 transition-opacity",
                           getMemberColor(item.data.member.color).bg,
                           getMemberColor(item.data.member.color).text
                         )}
@@ -145,8 +146,8 @@ export default function WeekView({
               </div>
 
               {daySchedules.length + dayEvents.length > 4 && (
-                <div className="text-xs text-gray-400 font-medium text-center mt-1">
-                  +{daySchedules.length + dayEvents.length - 4} อื่นๆ
+                <div className="text-[10px] sm:text-xs text-gray-400 font-medium text-center mt-1">
+                  +{daySchedules.length + dayEvents.length - 4}
                 </div>
               )}
 
@@ -159,113 +160,22 @@ export default function WeekView({
       </div>
       </div>
 
-      {/* Mobile: List below calendar grouped by date */}
+      {/* List below calendar grouped by date - Accordion style */}
       {weekItemsByDate.length > 0 && (
-        <div className="sm:hidden mt-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
+        <div className="mt-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
           <div className="p-3 bg-linear-to-r from-accent-blue-light/50 to-accent-purple-light/50 border-b border-gray-100">
             <h3 className="font-semibold text-gray-700 text-sm">รายการสัปดาห์นี้</h3>
           </div>
-          <div className="max-h-[400px] overflow-y-auto">
-            {weekItemsByDate.map((group) => {
-              const isPastDate = isBefore(group.date, startOfDay(today));
-              const isGroupToday = isSameDay(group.date, today);
-
-              return (
-                <div key={group.date.toISOString()}>
-                  {/* Date Header */}
-                  <div
-                    className={cn(
-                      "px-3 py-2 bg-gray-50 border-b border-gray-100 sticky top-0",
-                      isGroupToday && "bg-accent-yellow-light"
-                    )}
-                  >
-                    <p
-                      className={cn(
-                        "text-sm font-semibold",
-                        isPastDate ? "text-gray-400" : "text-gray-700"
-                      )}
-                    >
-                      {format(group.date, "EEEE d MMMM", { locale: th })}
-                      {isGroupToday && (
-                        <span className="ml-2 text-xs font-medium text-accent-orange">
-                          วันนี้
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  {/* Items for this date */}
-                  <div className="divide-y divide-gray-100">
-                    {group.items.map((item) =>
-                      item.type === "event" ? (
-                        <div
-                          key={`event-${item.data.id}`}
-                          className={cn(
-                            "px-3 py-3 flex items-center gap-3",
-                            isPastDate && "opacity-50"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "w-3 h-3 rounded-full shrink-0",
-                              isAllDayEvent(item.data)
-                                ? "bg-accent-pink"
-                                : "bg-accent-purple"
-                            )}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">
-                              {item.data.title}
-                            </p>
-                            {item.data.startTime && (
-                              <p className="text-xs text-gray-500">
-                                {item.data.startTime}
-                                {item.data.endTime && ` - ${item.data.endTime}`}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          key={`schedule-${item.data.id}`}
-                          onClick={() => onScheduleClick?.(item.data)}
-                          className={cn(
-                            "px-3 py-3 flex items-center gap-3 cursor-pointer active:bg-gray-50",
-                            isPastDate && "opacity-50"
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "w-3 h-3 rounded-full shrink-0",
-                              getMemberColor(item.data.member.color).dot
-                            )}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className={cn(
-                                "text-sm font-medium truncate",
-                                getMemberColor(item.data.member.color).text
-                              )}
-                            >
-                              {item.data.member.nickname}
-                            </p>
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs text-gray-500 shrink-0">
-                                {item.data.startTime} - {item.data.endTime}
-                              </p>
-                              {item.data.task && (
-                                <p className="text-xs text-gray-400 truncate">
-                                  {item.data.task}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="max-h-[500px] overflow-y-auto">
+            {weekItemsByDate.map((group) => (
+              <DateAccordion
+                key={group.date.toISOString()}
+                date={group.date}
+                items={group.items}
+                today={today}
+                onScheduleClick={onScheduleClick}
+              />
+            ))}
           </div>
         </div>
       )}

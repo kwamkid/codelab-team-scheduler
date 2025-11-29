@@ -251,6 +251,7 @@ export default function TeamPage() {
             schedules={schedules}
             events={events}
             onDayClick={handleDayClick}
+            onScheduleClick={handleScheduleClick}
           />
         )}
 

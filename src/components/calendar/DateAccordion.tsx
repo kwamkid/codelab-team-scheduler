@@ -15,6 +15,7 @@ interface DateAccordionProps {
   >;
   today: Date;
   onScheduleClick?: (schedule: ScheduleWithMember) => void;
+  onEventClick?: (event: Event) => void;
 }
 
 // Helper to check if event is all-day
@@ -25,6 +26,7 @@ export default function DateAccordion({
   items,
   today,
   onScheduleClick,
+  onEventClick,
 }: DateAccordionProps) {
   const isPastDate = isBefore(date, startOfDay(today));
   const isToday = isSameDay(date, today);
@@ -87,8 +89,9 @@ export default function DateAccordion({
             item.type === "event" ? (
               <div
                 key={`event-${item.data.id}`}
+                onClick={() => onEventClick?.(item.data)}
                 className={cn(
-                  "px-4 py-3 flex items-center gap-4",
+                  "px-4 py-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50",
                   isPastDate && "opacity-50"
                 )}
               >

@@ -24,6 +24,7 @@ interface MonthViewProps {
   onDayClick: (date: Date) => void;
   onAddSchedule?: (date: Date) => void;
   onScheduleClick?: (schedule: ScheduleWithMember) => void;
+  onEventClick?: (event: Event) => void;
 }
 
 export default function MonthView({
@@ -33,6 +34,7 @@ export default function MonthView({
   onDayClick,
   onAddSchedule,
   onScheduleClick,
+  onEventClick,
 }: MonthViewProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -161,8 +163,12 @@ export default function MonthView({
                     item.type === "event" ? (
                       <div
                         key={item.data.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEventClick?.(item.data);
+                        }}
                         className={cn(
-                          "text-xs px-2 py-1 rounded-lg truncate font-medium shadow-sm",
+                          "text-xs px-2 py-1 rounded-lg truncate font-medium shadow-sm cursor-pointer hover:opacity-80 transition-opacity",
                           isAllDayEvent(item.data)
                             ? "bg-accent-pink-light text-accent-pink"
                             : "bg-accent-purple-light text-accent-purple"
@@ -207,8 +213,12 @@ export default function MonthView({
                     item.type === "event" ? (
                       <div
                         key={item.data.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEventClick?.(item.data);
+                        }}
                         className={cn(
-                          "text-[10px] px-1 py-0.5 rounded truncate font-medium leading-tight",
+                          "text-[10px] px-1 py-0.5 rounded truncate font-medium leading-tight cursor-pointer",
                           isAllDayEvent(item.data)
                             ? "bg-accent-pink-light text-accent-pink"
                             : "bg-accent-purple-light text-accent-purple"
@@ -219,8 +229,12 @@ export default function MonthView({
                     ) : (
                       <div
                         key={item.data.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onScheduleClick?.(item.data);
+                        }}
                         className={cn(
-                          "text-[10px] px-1 py-0.5 rounded truncate font-medium leading-tight",
+                          "text-[10px] px-1 py-0.5 rounded truncate font-medium leading-tight cursor-pointer",
                           getMemberColor(item.data.member.color).bg,
                           getMemberColor(item.data.member.color).text
                         )}
@@ -255,6 +269,7 @@ export default function MonthView({
                 items={group.items}
                 today={today}
                 onScheduleClick={onScheduleClick}
+                onEventClick={onEventClick}
               />
             ))}
           </div>

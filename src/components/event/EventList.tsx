@@ -5,11 +5,11 @@ import EventCard from "./EventCard";
 
 interface EventListProps {
   events: Event[];
-  onEdit: (event: Event) => void;
+  onClick: (event: Event) => void;
   onDelete: (id: string) => void;
 }
 
-export default function EventList({ events, onEdit, onDelete }: EventListProps) {
+export default function EventList({ events, onClick, onDelete }: EventListProps) {
   if (events.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -25,7 +25,7 @@ export default function EventList({ events, onEdit, onDelete }: EventListProps) 
           key={event.id}
           event={event}
           showDate
-          onEdit={() => onEdit(event)}
+          onClick={() => onClick(event)}
           onDelete={() => onDelete(event.id)}
         />
       ))}

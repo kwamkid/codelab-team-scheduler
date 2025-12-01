@@ -15,6 +15,7 @@ interface ListViewProps {
   events: Event[];
   onDayClick: (date: Date) => void;
   onScheduleClick?: (schedule: ScheduleWithMember) => void;
+  onEventClick?: (event: Event) => void;
 }
 
 export default function ListView({
@@ -23,6 +24,7 @@ export default function ListView({
   events,
   onDayClick,
   onScheduleClick,
+  onEventClick,
 }: ListViewProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -101,8 +103,9 @@ export default function ListView({
                   {dayEvents.map((event) => (
                     <div
                       key={`event-${event.id}`}
+                      onClick={() => onEventClick?.(event)}
                       className={cn(
-                        "px-4 py-3 flex items-center gap-4",
+                        "px-4 py-3 flex items-center gap-4 cursor-pointer hover:bg-gray-50",
                         isPast && "opacity-60"
                       )}
                     >

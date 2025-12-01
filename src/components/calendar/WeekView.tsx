@@ -13,6 +13,7 @@ interface WeekViewProps {
   onDayClick: (date: Date) => void;
   onAddSchedule?: (date: Date) => void;
   onScheduleClick?: (schedule: ScheduleWithMember) => void;
+  onEventClick?: (event: Event) => void;
 }
 
 export default function WeekView({
@@ -22,6 +23,7 @@ export default function WeekView({
   onDayClick,
   onAddSchedule,
   onScheduleClick,
+  onEventClick,
 }: WeekViewProps) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -115,8 +117,12 @@ export default function WeekView({
                     item.type === "event" ? (
                       <div
                         key={item.data.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEventClick?.(item.data);
+                        }}
                         className={cn(
-                          "px-1.5 sm:px-2 py-1 sm:py-2 rounded-lg text-[10px] sm:text-xs truncate font-medium shadow-sm",
+                          "px-1.5 sm:px-2 py-1 sm:py-2 rounded-lg text-[10px] sm:text-xs truncate font-medium shadow-sm cursor-pointer hover:opacity-80 transition-opacity",
                           isAllDayEvent(item.data)
                             ? "bg-accent-pink-light text-accent-pink"
                             : "bg-accent-purple-light text-accent-purple"
@@ -174,6 +180,7 @@ export default function WeekView({
                 items={group.items}
                 today={today}
                 onScheduleClick={onScheduleClick}
+                onEventClick={onEventClick}
               />
             ))}
           </div>

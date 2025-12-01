@@ -14,12 +14,14 @@ import { CalendarPlus, Plus } from "lucide-react";
 import { getTeamByCode } from "@/actions/team";
 import {
   createSchedule,
+  createScheduleRange,
   updateSchedule,
   deleteSchedule,
   getSchedulesByMonth,
 } from "@/actions/schedule";
 import {
   createEvent,
+  createEventRange,
   updateEvent,
   deleteEvent,
   getEventsByMonth,
@@ -34,6 +36,7 @@ import ListView from "@/components/calendar/ListView";
 import ScheduleForm from "@/components/schedule/ScheduleForm";
 import ScheduleDetail from "@/components/schedule/ScheduleDetail";
 import EventForm from "@/components/event/EventForm";
+import EventDetail from "@/components/event/EventDetail";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 
@@ -52,7 +55,7 @@ export default function TeamPage() {
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleWithMember | null>(null);
   const [viewingSchedule, setViewingSchedule] = useState<ScheduleWithMember | null>(null);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [viewingEvent, setViewingEvent] = useState<Event | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   const loadData = useCallback(async () => {
@@ -112,6 +115,20 @@ export default function TeamPage() {
     loadData();
   };
 
+  const handleCreateScheduleRange = async (data: {
+    memberId: string;
+    startDate: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+    task?: string;
+  }) => {
+    await createScheduleRange(data);
+    setShowScheduleModal(false);
+    setSelectedDate(undefined);
+    loadData();
+  };
+
   const handleUpdateSchedule = async (data: {
     memberId: string;
     date: string;
@@ -159,21 +176,33 @@ export default function TeamPage() {
     loadData();
   };
 
-  const handleUpdateEvent = async (data: {
+  const handleCreateEventRange = async (data: {
     title: string;
-    date: string;
+    startDate: string;
+    endDate: string;
     startTime?: string;
     endTime?: string;
     description?: string;
   }) => {
-    if (!editingEvent) return;
-    await updateEvent(editingEvent.id, data);
-    setEditingEvent(null);
+    if (!team) return;
+    await createEventRange({ ...data, teamId: team.id });
+    setShowEventModal(false);
+    setSelectedDate(undefined);
     loadData();
   };
 
+  const handleUpdateEvent = async (data: { title?: string; description?: string }) => {
+    if (!viewingEvent) return;
+    await updateEvent(viewingEvent.id, { title: data.title, description: data.description });
+    setViewingEvent(null);
+    loadData();
+  };
+
+  const handleEventClick = (event: Event) => {
+    setViewingEvent(event);
+  };
+
   const handleDeleteEvent = async (id: string) => {
-    if (!confirm("ลบ Event นี้?")) return;
     await deleteEvent(id);
     loadData();
   };
@@ -218,7 +247,7 @@ export default function TeamPage() {
             events={events}
             onEditSchedule={setEditingSchedule}
             onDeleteSchedule={handleDeleteSchedule}
-            onEditEvent={setEditingEvent}
+            onEventClick={handleEventClick}
             onDeleteEvent={handleDeleteEvent}
           />
         )}
@@ -231,6 +260,7 @@ export default function TeamPage() {
             onDayClick={handleDayClick}
             onAddSchedule={handleAddScheduleFromCalendar}
             onScheduleClick={handleScheduleClick}
+            onEventClick={handleEventClick}
           />
         )}
 
@@ -242,6 +272,7 @@ export default function TeamPage() {
             onDayClick={handleDayClick}
             onAddSchedule={handleAddScheduleFromCalendar}
             onScheduleClick={handleScheduleClick}
+            onEventClick={handleEventClick}
           />
         )}
 
@@ -252,6 +283,7 @@ export default function TeamPage() {
             events={events}
             onDayClick={handleDayClick}
             onScheduleClick={handleScheduleClick}
+            onEventClick={handleEventClick}
           />
         )}
 
@@ -290,6 +322,7 @@ export default function TeamPage() {
           members={team.members}
           initialDate={selectedDate}
           onSubmit={handleCreateSchedule}
+          onSubmitRange={handleCreateScheduleRange}
           onCancel={() => setShowScheduleModal(false)}
         />
       </Modal>
@@ -335,20 +368,22 @@ export default function TeamPage() {
         <EventForm
           initialDate={selectedDate}
           onSubmit={handleCreateEvent}
+          onSubmitRange={handleCreateEventRange}
           onCancel={() => setShowEventModal(false)}
         />
       </Modal>
 
       <Modal
-        isOpen={!!editingEvent}
-        onClose={() => setEditingEvent(null)}
-        title="แก้ไข Event"
+        isOpen={!!viewingEvent}
+        onClose={() => setViewingEvent(null)}
+        title={viewingEvent?.title || "รายละเอียด Event"}
       >
-        {editingEvent && (
-          <EventForm
-            event={editingEvent}
-            onSubmit={handleUpdateEvent}
-            onCancel={() => setEditingEvent(null)}
+        {viewingEvent && (
+          <EventDetail
+            event={viewingEvent}
+            onUpdate={handleUpdateEvent}
+            onDelete={() => handleDeleteEvent(viewingEvent.id)}
+            onClose={() => setViewingEvent(null)}
           />
         )}
       </Modal>

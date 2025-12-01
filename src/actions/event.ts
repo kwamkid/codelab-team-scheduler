@@ -37,6 +37,52 @@ export async function createEvent(data: {
   return { success: true, event };
 }
 
+export async function createEventRange(data: {
+  teamId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  startTime?: string;
+  endTime?: string;
+  description?: string;
+}) {
+  const team = await prisma.team.findUnique({ where: { id: data.teamId } });
+
+  if (!team) {
+    return { error: "ไม่พบทีม" };
+  }
+
+  if (!data.title.trim()) {
+    return { error: "กรุณาใส่ชื่อ Event" };
+  }
+
+  // Generate all dates in the range
+  const start = new Date(data.startDate);
+  const end = new Date(data.endDate);
+  const dates: Date[] = [];
+
+  const current = new Date(start);
+  while (current <= end) {
+    dates.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  // Create events for each date
+  const events = await prisma.event.createMany({
+    data: dates.map((date) => ({
+      teamId: data.teamId,
+      title: data.title.trim(),
+      date,
+      startTime: data.startTime || null,
+      endTime: data.endTime || null,
+      description: data.description || null,
+    })),
+  });
+
+  revalidatePath(`/team/${team.code}`);
+  return { success: true, count: events.count };
+}
+
 export async function updateEvent(
   id: string,
   data: {

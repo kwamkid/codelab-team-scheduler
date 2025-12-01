@@ -41,6 +41,49 @@ export async function createSchedule(data: {
   return { success: true, schedule };
 }
 
+export async function createScheduleRange(data: {
+  memberId: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  task?: string;
+}) {
+  const member = await prisma.member.findUnique({
+    where: { id: data.memberId },
+    include: { team: true },
+  });
+
+  if (!member) {
+    return { error: "ไม่พบสมาชิก" };
+  }
+
+  // Generate all dates in the range
+  const start = new Date(data.startDate);
+  const end = new Date(data.endDate);
+  const dates: Date[] = [];
+
+  const current = new Date(start);
+  while (current <= end) {
+    dates.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  // Create schedules for each date
+  const schedules = await prisma.schedule.createMany({
+    data: dates.map((date) => ({
+      memberId: data.memberId,
+      date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      task: data.task || null,
+    })),
+  });
+
+  revalidatePath(`/team/${member.team.code}`);
+  return { success: true, count: schedules.count };
+}
+
 export async function updateSchedule(
   id: string,
   data: {

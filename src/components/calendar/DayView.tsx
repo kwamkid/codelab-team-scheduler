@@ -14,7 +14,7 @@ interface DayViewProps {
   events: Event[];
   onEditSchedule: (schedule: ScheduleWithMember) => void;
   onDeleteSchedule: (id: string) => void;
-  onEditEvent: (event: Event) => void;
+  onEventClick: (event: Event) => void;
   onDeleteEvent: (id: string) => void;
 }
 
@@ -24,7 +24,7 @@ export default function DayView({
   events,
   onEditSchedule,
   onDeleteSchedule,
-  onEditEvent,
+  onEventClick,
   onDeleteEvent,
 }: DayViewProps) {
   const dayEvents = events.filter(
@@ -79,7 +79,7 @@ export default function DayView({
                 <EventCard
                   key={event.id}
                   event={event}
-                  onEdit={() => onEditEvent(event)}
+                  onClick={() => onEventClick(event)}
                   onDelete={() => onDeleteEvent(event.id)}
                 />
               ))}

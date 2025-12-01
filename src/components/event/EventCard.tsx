@@ -7,14 +7,14 @@ import { cn } from "@/lib/utils";
 
 interface EventCardProps {
   event: Event;
-  onEdit: () => void;
+  onClick: () => void;
   onDelete: () => void;
   showDate?: boolean;
 }
 
 export default function EventCard({
   event,
-  onEdit,
+  onClick,
   onDelete,
   showDate = false,
 }: EventCardProps) {
@@ -80,13 +80,18 @@ export default function EventCard({
         {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            onClick={onEdit}
+            onClick={onClick}
             className="p-2 text-gray-400 hover:text-accent-blue hover:bg-accent-blue-light rounded-lg transition-all"
           >
             <Pencil className="w-4 h-4" />
           </button>
           <button
-            onClick={onDelete}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`ลบ Event "${event.title}"?`)) {
+                onDelete();
+              }
+            }}
             className="p-2 text-gray-400 hover:text-primary hover:bg-primary-light rounded-lg transition-all"
           >
             <Trash2 className="w-4 h-4" />
